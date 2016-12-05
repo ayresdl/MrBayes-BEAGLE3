@@ -49,7 +49,7 @@
 #endif
 #include <signal.h>
 
-const char* const svnRevisionMcmcC = "$Rev: 1072 $";   /* Revision keyword which is expanded/updated by svn on each commit/update */
+const char* const svnRevisionMcmcC = "$Rev$";   /* Revision keyword which is expanded/updated by svn on each commit/update */
 
 #if defined (WIN_VERSION) && !defined (__GNUC__)
 #define VISUAL
@@ -85,6 +85,7 @@ typedef void (*sighandler_t) (int);
 #undef  DEBUG_LIKELIHOOD
 #undef  DEBUG_FBDPR       // #undef  FBDPR_CondOnN
 #undef  SHOW_MOVE
+
 
 #if defined (MPI_ENABLED)
 #define ERROR_TEST2(failString,X1,X2) \
@@ -2078,12 +2079,26 @@ void CopySiteScalers (ModelInfo *m, int chain)
         j = m->siteScalerScratchIndex;
         for (i=0; i<m->nCijkParts; i++)
             {
-            beagleResetScaleFactors (m->beagleInstance,
-                                     m->siteScalerIndex[chain] + i);
-            beagleAccumulateScaleFactors (m->beagleInstance,
-                                          &j,
-                                          1,
-                                          m->siteScalerIndex[chain] + i);
+            if (m->useBeagleMultiPartitions == NO)
+                {
+                beagleResetScaleFactors (m->beagleInstance,
+                                         m->siteScalerIndex[chain] + i);
+                beagleAccumulateScaleFactors (m->beagleInstance,
+                                              &j,
+                                              1,
+                                              m->siteScalerIndex[chain] + i);
+                }
+            else
+                {
+                beagleResetScaleFactorsByPartition (m->beagleInstance,
+                                                    m->siteScalerIndex[chain] + i,
+                                                    m->divisionIndex);
+                beagleAccumulateScaleFactorsByPartition (m->beagleInstance,
+                                                         &j,
+                                                         1,
+                                                         m->siteScalerIndex[chain] + i,
+                                                         m->divisionIndex);                        
+                }
             j++;
             }
         return;
@@ -2157,6 +2172,9 @@ void CopyTrees (int chain)
         for (i=0; i<from->nIntNodes; i++)
             {
             to->intDownPass[i] = to->nodes + from->intDownPass[i]->memoryIndex;
+#if defined (BEAGLE_LEVELPASS_ENABLED)
+            to->intDownPassLevel[i] = to->nodes + from->intDownPassLevel[i]->memoryIndex;
+#endif
             }
         for (i=0; i<from->nNodes; i++)
             {
@@ -4624,7 +4642,9 @@ void FreeChainMemory (void)
         if (m->useBeagle == NO)
             continue;
 
-        beagleFinalizeInstance(m->beagleInstance);
+        if (!(m->useBeagleMultiPartitions == YES && m->divisionIndex > 0))
+            beagleFinalizeInstance(m->beagleInstance);
+
         SafeFree((void **)(&m->logLikelihoods));
         SafeFree((void **)(&m->inRates));
         SafeFree((void **)(&m->branchLengths));
@@ -4646,10 +4666,23 @@ void FreeChainMemory (void)
         SafeFree((void **)(&m->isScalerNode));
 
         SafeFree((void **)(&m->beagleComputeCount));
-        SafeFree((void **)(&m->succesCount));
+        SafeFree((void **)(&m->successCount));
         SafeFree((void **)(&m->rescaleFreq));
-
-#   endif
+        SafeFree((void **)(&m->operations));
+#   if defined (BEAGLE_MULTIPART_ENABLED)
+        if (m->useBeagleMultiPartitions == YES)
+            {
+            if (m->divisionIndex == 0)
+                {
+                SafeFree((void **)(&m->logLikelihoodsAll));
+                SafeFree((void **)(&m->cijkIndicesAll));
+                SafeFree((void **)(&m->categoryRateIndicesAll));
+                SafeFree((void **)(&m->operationsAll));
+                }
+            SafeFree((void **)(&m->operationsByPartition));
+            }
+#   endif /* BEAGLE_MULTIPART_ENABLED */
+#   endif /* BEAGLE_ENABLED */
         }
 
     if (memAllocs[ALLOC_CURLNL] == YES) /*alloc in RunChain()*/
@@ -5714,7 +5747,7 @@ int InitAugmentedModels (void)
 int InitChainCondLikes (void)
 {
     int         c, d, i, j, k, s, t, numReps, condLikesUsed, nIntNodes, nNodes, useBeagle,
-                clIndex, tiIndex, scalerIndex, indexStep;
+                useBeagleMultiPartitions, clIndex, tiIndex, scalerIndex, indexStep, divisionOffset;
     BitsLong    *charBits;
     CLFlt       *cL;
     ModelInfo   *m;
@@ -5723,6 +5756,7 @@ int InitChainCondLikes (void)
 #   endif
 #   if defined (BEAGLE_ENABLED)
     double      *nSitesOfPat;
+    int         *nPartsOfPat;
     MrBFlt      freq;
 #   endif
 
@@ -5854,6 +5888,12 @@ int InitChainCondLikes (void)
     else
         return NO_ERROR;
 
+    useBeagleMultiPartitions = NO;
+#   if defined (BEAGLE_MULTIPART_ENABLED)
+    if (beagleResourceNumber != 0 && numCurrentDivisions > 1 && InitBeagleMultiPartitionInstance() != ERROR)
+        useBeagleMultiPartitions = YES;
+#   endif
+
     /* allocate space and fill in info for tips */
     for (d=0; d<numCurrentDivisions; d++)
         {
@@ -5864,7 +5904,9 @@ int InitChainCondLikes (void)
 #   if defined (BEAGLE_ENABLED)
         if (m->useBeagle == YES)
             {
-            if (InitBeagleInstance(m, d) != ERROR)
+            if (useBeagleMultiPartitions == YES)
+                useBeagle = YES;
+            else if (InitBeagleInstance(m, d) != ERROR)
                 useBeagle = YES;
             else
                 m->useBeagle = NO;
@@ -6164,7 +6206,7 @@ int InitChainCondLikes (void)
         /* used only with Beagle advanced dynamic rescaling where we set scaler nodes for each partition  */
         if (m->useBeagle == YES)
             {
-            m->succesCount = (int*) SafeMalloc((numLocalChains) * sizeof(int));
+            m->successCount = (int*) SafeMalloc((numLocalChains) * sizeof(int));
             m->rescaleFreq = (int*) SafeMalloc((numLocalChains) * sizeof(int));
             m->beagleComputeCount = (long *) SafeMalloc(sizeof(long) * numLocalChains);
             t=BEAGLE_RESCALE_FREQ/m->numModelStates;
@@ -6200,13 +6242,20 @@ int InitChainCondLikes (void)
             /* Set up nSitesOfPat for Beagle */
             if (m->useBeagle == YES)
                 {
-                nSitesOfPat = (double *) SafeMalloc (m->numChars * sizeof(double));
-                for (c=0; c<m->numChars; c++)
-                    nSitesOfPat[c] = numSitesOfPat[m->compCharStart + c];
-                beagleSetPatternWeights(m->beagleInstance,
-                                        nSitesOfPat);
-                free (nSitesOfPat);
-                nSitesOfPat = NULL;
+                if (useBeagleMultiPartitions == NO)
+                    {
+                    nSitesOfPat = (double *) SafeMalloc (m->numChars * sizeof(double));
+                    for (c=0; c<m->numChars; c++)
+                        nSitesOfPat[c] = numSitesOfPat[m->compCharStart + c];
+                    beagleSetPatternWeights(m->beagleInstance,
+                                            nSitesOfPat);
+                    free (nSitesOfPat);
+                    nSitesOfPat = NULL;
+
+                    /* Set up scalers for Beagle */
+                    for (i=0; i<m->numScalers*m->nCijkParts; i++)
+                        beagleResetScaleFactors(m->beagleInstance, i);
+                    }
 
                 /* find category frequencies */
                 if (m->pInvar == NO)
@@ -6216,23 +6265,25 @@ int InitChainCondLikes (void)
                     /* set category frequencies in beagle instance */
                     if (m->numOmegaCats <= 1)
                         {
+                        divisionOffset = 0;
+                        if (m->useBeagleMultiPartitions == YES)
+                            divisionOffset = (numLocalChains + 1) * m->nCijkParts * m->divisionIndex;
+
                         for (i=0; i<m->numGammaCats; i++)
                             m->inWeights[i] = freq;
-                        for (i=0; i< (numLocalChains); i++) {
+                        for (i=0; i< (numLocalChains); i++)
+                            {
                             beagleSetCategoryWeights(m->beagleInstance,
-                                                     m->cijkIndex[i],
+                                                     m->cijkIndex[i] + divisionOffset,
                                                      m->inWeights);
                             }
                         beagleSetCategoryWeights(m->beagleInstance,
-                                                 m->cijkScratchIndex,
+                                                 m->cijkScratchIndex + divisionOffset,
                                                  m->inWeights);
                         }
                     }
-                
-                /* Set up scalers for Beagle */
-                for (i=0; i<m->numScalers*m->nCijkParts; i++)
-                    beagleResetScaleFactors(m->beagleInstance, i);
                 }
+                
 #   endif
 
         /* fill in tip conditional likelihoods */
@@ -6377,6 +6428,39 @@ int InitChainCondLikes (void)
                 return (ERROR);
             }
         }
+
+#if defined (BEAGLE_MULTIPART_ENABLED)
+    if (useBeagleMultiPartitions == YES)
+        {
+        nSitesOfPat = (double *) SafeMalloc (modelSettings[0].numCharsAll * sizeof(double));
+        nPartsOfPat = (int    *) SafeMalloc (modelSettings[0].numCharsAll * sizeof(int   ));
+        j = 0;
+        for (d=0; d<numCurrentDivisions; d++)
+            {
+            m = &modelSettings[d];
+            for (c=0; c<m->numChars; c++)
+                {
+                nSitesOfPat[j] = numSitesOfPat[m->compCharStart + c];
+                nPartsOfPat[j] = m->divisionIndex;
+                j++;
+                }
+            }
+        beagleSetPatternWeights(modelSettings[0].beagleInstance,
+                                nSitesOfPat);
+        beagleSetPatternPartitions(modelSettings[0].beagleInstance,
+                                   numCurrentDivisions,
+                                   nPartsOfPat);
+        free (nSitesOfPat);
+        free (nPartsOfPat);
+        nSitesOfPat = NULL;
+        nPartsOfPat = NULL;
+
+        /* Set up scalers for Beagle */
+        for (i=0; i<modelSettings[0].numScalers*modelSettings[0].nCijkParts; i++)
+            beagleResetScaleFactors(modelSettings[0].beagleInstance, i);
+        }
+#endif
+
     /* allocate space for precalculated likelihoods */
     j = 0;
     for (d=0; d<numCurrentDivisions; d++)
@@ -7295,6 +7379,15 @@ MrBFlt LogLike (int chain)
     return (chainLnLike);
 #   endif
 
+#   if defined (BEAGLE_MULTIPART_ENABLED)
+    if (modelSettings[0].useBeagleMultiPartitions == YES)
+        {
+        /* Launch all divisions that require updating in one Beagle instance, concurrently */
+        LaunchLogLikeForBeagleMultiPartition(chain, &chainLnLike);
+        }
+    else
+        {
+#   endif
 #   if defined (THREADS_ENABLED)
     if (tryToUseThreads && ScheduleLogLikeForAllDivisions()) 
         {
@@ -7331,7 +7424,12 @@ MrBFlt LogLike (int chain)
 #   if defined (THREADS_ENABLED)
         }
 #   endif
-
+#   if defined (BEAGLE_MULTIPART_ENABLED)
+        }
+#   endif
+#if defined (DEBUG_MB_BEAGLE_MULTIPART)
+    printf("chainLnLike = %f\n", chainLnLike);
+#endif
     /* unmark all divisions */
     if (chainHasAdgamma == YES)
         {
@@ -15714,7 +15812,11 @@ void ResetSiteScalers (ModelInfo *m, int chain)
 #if defined (BEAGLE_ENABLED)
     if (m->useBeagle == YES)
         {
-        beagleResetScaleFactors(m->beagleInstance, m->siteScalerIndex[chain]);
+        if (m->useBeagleMultiPartitions == NO)
+            beagleResetScaleFactors(m->beagleInstance, m->siteScalerIndex[chain]);
+        else
+            beagleResetScaleFactorsByPartition(m->beagleInstance, m->siteScalerIndex[chain], m->divisionIndex);
+        /* TODO: check if nCijkParts scale factors should also be reset here */
         return;
         }
 #endif

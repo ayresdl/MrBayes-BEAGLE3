@@ -128,6 +128,10 @@ then
         [AC_MSG_ERROR([pthreads library not found])])
         AC_DEFINE(THREADS_ENABLED)
     fi
+
+    # --- check for multi partition support ------
+    AC_CHECK_LIB(hmsbeagle, beagleSetPatternPartitions, [AC_DEFINE(BEAGLE_MULTIPART_ENABLED)],[])
+
 fi
 # ------------------------------------------------------------------------------
 

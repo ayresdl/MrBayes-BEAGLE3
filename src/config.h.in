@@ -38,3 +38,6 @@
 
 /* Define to enable threads in BEAGLE library */
 #undef THREADS_ENABLED
+
+/* Define to enable multiple partitions in single BEAGLE library instance (requires version 3 and up) */
+#undef BEAGLE_MULTIPART_ENABLED

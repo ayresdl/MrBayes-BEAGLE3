@@ -1,0 +1,52 @@
+#NEXUS
+
+begin mrbayes;
+
+set autoclose=yes nowarn=yes seed=1 swapseed=1;
+
+exe dataset-medium.nex;
+
+charset 1st_pos = 1-18792\3;
+charset 2nd_pos = 2-18792\3;
+charset 3rd_pos = 3-18792\3;
+
+
+[charset 1st_pos  = 1-18792\10; ]
+[charset 2nd_pos  = 2-18792\10; ]
+[charset 3rd_pos  = 3-18792\10; ]
+[charset 4th_pos  = 4-18792\10; ]
+[charset 5th_pos  = 5-18792\10; ]
+[charset 6th_pos  = 6-18792\10; ]
+[charset 7th_pos  = 7-18792\10; ]
+[charset 8th_pos  = 8-18792\10; ]
+[charset 9th_pos  = 9-18792\10; ]
+[charset 10th_pos = 10-18792\10;]
+
+
+partition by_codon = 3:1st_pos,2nd_pos,3rd_pos;
+[partition by_codon = 10:1st_pos,2nd_pos,3rd_pos,4th_pos,5th_pos,6th_pos,7th_pos,8th_pos,9th_pos,10th_pos;]
+
+[set partition=by_codon;]
+
+lset applyto=(all) nst=6 rates=invgamma;
+
+[prset applyto=(all) brlenspr=clock:uni;]
+
+prset applyto=(all) ratepr=variable;
+
+unlink  shape=(all);
+unlink  pinvar=(all);
+unlink  statefreq=(all);
+unlink  revmat=(all);
+unlink  ratemultiplier=(all);
+[unlink  brlens=(all);]
+[unlink  clockrate=(all);]
+
+
+set seed=1 swapseed=1;
+
+[mcmc ngen=50000 nruns=1 nchains=1;]
+[mcmc ngen=492 nruns=1 nchains=1 printFreq=1;]
+mcmc ngen=5000 nruns=1 nchains=1 printFreq=1000;
+
+end;

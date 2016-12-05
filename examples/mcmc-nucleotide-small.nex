@@ -1,0 +1,16 @@
+#NEXUS
+
+begin mrbayes;
+
+set autoclose=yes nowarn=yes seed=1 swapseed=1;
+
+exe dataset-small.nex;
+
+lset nst=6 rates=invgamma;
+
+set seed=1 swapseed=1;
+
+[mcmc ngen=500000 nruns=1 nchains=1;]
+mcmc ngen=1 nruns=1 nchains=1;
+
+end;

@@ -46,7 +46,7 @@
 #include "SIOUX.h"
 #endif
 
-const char* const svnRevisionModelC = "$Rev: 1067 $";   /* Revision keyword which is expended/updated by svn on each commit/update */
+const char* const svnRevisionModelC = "$Rev$";   /* Revision keyword which is expended/updated by svn on each commit/update */
 
 #undef  DEBUG_ADDDUMMYCHARS
 #undef  DEBUG_CONSTRAINTS
@@ -17518,11 +17518,23 @@ int SetModelInfo (void)
         m->childBufferIndices = NULL;         /* array of child partial indices (unrooted)    */
         m->childTiProbIndices = NULL;         /* array of child ti prob indices (unrooted)    */
         m->cumulativeScaleIndices = NULL;     /* array of cumulative scale indices            */
-#   endif
+        m->divisionIndex = i;                 /* division index number                        */
+        m->operations = NULL;                 /* array of operations to be sent to Beagle     */
+        m->opCount = 0;                       /* partial likelihood operations count          */
+#   if defined (BEAGLE_MULTIPART_ENABLED)
+        m->numCharsAll               = 0;     /* number of compressed chars for all divisions */
+        m->logLikelihoodsAll         = NULL;  /* array of log likelihoods for all divisions   */
+        m->cijkIndicesAll            = NULL;  /* cijk array for all divisions                 */
+        m->categoryRateIndicesAll    = NULL;  /* category rate array for all divisions        */  
+        m->operationsAll             = NULL;  /* array of all operations across divisions     */
+        m->operationsByPartition     = NULL;  /* array of division operations to be sent to Beagle */
+#   endif /* BEAGLE_MULTIPART_ENABLED */
+#   endif /* BEAGLE_ENABLED */
 
         /* likelihood calculator flags */
         m->useSSE = NO;                       /* use SSE code for this partition?             */
         m->useBeagle = NO;                    /* use Beagle for this partition?               */
+        m->useBeagleMultiPartitions = NO;     /* use one Beagle instance for all partitions?  */
 
         /* set all memory pointers to NULL */
         m->parsSets = NULL;

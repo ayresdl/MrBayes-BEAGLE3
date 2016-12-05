@@ -40,7 +40,7 @@
 #include "sumpt.h"
 #include "utils.h"
 
-       const char* const svnRevisionBayesC = "$Rev: 1068 $";   /* Revision keyword which is expended/updated by svn on each commit/update */
+       const char* const svnRevisionBayesC = "$Rev$";   /* Revision keyword which is expended/updated by svn on each commit/update */
 extern const char* const svnRevisionBestC;
 extern const char* const svnRevisionCommandC;
 extern const char* const svnRevisionLikeliC;

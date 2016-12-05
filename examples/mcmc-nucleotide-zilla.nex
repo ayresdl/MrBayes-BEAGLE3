@@ -1,0 +1,40 @@
+#NEXUS
+
+begin mrbayes;
+
+set autoclose=yes nowarn=yes seed=1 swapseed=1;
+
+exe zilla200.nex;
+
+charset 1st_pos = 1-759\3;
+charset 2nd_pos = 2-759\3;
+charset 3rd_pos = 3-759\3;
+
+partition by_codon = 3:1st_pos,2nd_pos,3rd_pos;
+
+set partition=by_codon;
+
+lset nst=6 rates=invgamma;
+
+[lset rates=propinv;]
+
+[prset brlenspr=clock:uni;]
+[prset applyto=(all) brlenspr=clock:uni;]
+
+prset applyto=(all) ratepr=variable;
+
+unlink  shape=(all);
+unlink  pinvar=(all);
+unlink  statefreq=(all);
+unlink  revmat=(all);
+unlink  ratemultiplier=(all);
+[unlink  brlens=(all);]
+[unlink  clockrate=(all);]
+
+set seed=1 swapseed=1;
+
+[mcmc ngen=50000 nruns=1 nchains=1;]
+[mcmc ngen=1 nruns=1 nchains=1;]
+mcmc ngen=5000 nruns=1 nchains=1 printfreq=1000;
+
+end;
