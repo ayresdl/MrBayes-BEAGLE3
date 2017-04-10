@@ -15990,6 +15990,7 @@ int RunChain (RandLong *seed)
     MrBFlt      r=0.0, lnLikelihoodRatio, lnPriorRatio, lnProposalRatio, lnLike=0.0, lnPrior=0.0, f=0.0, CPUTime;
     MCMCMove    *theMove, *mv;
     time_t      startingT, endingT, stoppingT1, stoppingT2;
+    struct timespec tw1, tw2;
     clock_t     previousCPUTime, currentCPUTime;
     /* Stepping-stone sampling variables */
     int         run, samplesCountSS=0, stepIndexSS=0, numGenInStepSS=0, numGenOld, lastStepEndSS=0, numGenInStepBurninSS=0;
@@ -16612,6 +16613,7 @@ int RunChain (RandLong *seed)
         maxLnL0[i] = -100000000.0;
 
     startingT=time(0);
+    clock_gettime(CLOCK_MONOTONIC, &tw1);
     CPUTime = 0.0;
     previousCPUTime = clock();
 
@@ -17379,6 +17381,7 @@ int RunChain (RandLong *seed)
 
         } /* end run chain */
     endingT = time(0);
+    clock_gettime(CLOCK_MONOTONIC, &tw2);
     currentCPUTime = clock();
     CPUTime += (currentCPUTime - previousCPUTime) / (MrBFlt) CLOCKS_PER_SEC;
 
@@ -17434,11 +17437,13 @@ int RunChain (RandLong *seed)
     else
         MrBayesPrint ("%s   Analysis completed in less than 1 second\n", spacer);
 
+    MrBayesPrint ("%s   Analysis used %1.2f seconds of total time\n", spacer, (MrBFlt) (1000.0*tw2.tv_sec + 1e-6*tw2.tv_nsec - (1000.0*tw1.tv_sec + 1e-6*tw1.tv_nsec))/1000);
 #   if defined (MPI_ENABLED)
     MrBayesPrint ("%s   Analysis used %1.2f seconds of CPU time on processor 0\n", spacer, (MrBFlt) CPUTime);
 #   else
     MrBayesPrint ("%s   Analysis used %1.2f seconds of CPU time\n", spacer, (MrBFlt) CPUTime);
 #   endif
+
 
 #   if defined (MPI_ENABLED)
     /* find the best likelihoods across all of the processors */

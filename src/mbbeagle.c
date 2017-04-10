@@ -395,7 +395,7 @@ void recalculateScalers(int chain)
     int         *divisions;
 #endif
 
-    if (m->useBeagleMultiPartitions == NO)
+    if (modelSettings[0].useBeagleMultiPartitions == NO)
         {
         for (d=0; d<numCurrentDivisions; d++)
             {
@@ -1193,6 +1193,9 @@ int TreeLikelihood_Beagle (Tree *t, int division, int chain, MrBFlt *lnL, int wh
 #   if defined (MB_PRINT_DYNAMIC_RESCALE_FAIL_STAT)
     countALL++;
 #   endif
+    if (*lnL > DBL_MAX || *lnL < -DBL_MAX) {
+        beagleReturn = BEAGLE_ERROR_FLOATING_POINT;
+    }
     if (beagleReturn == BEAGLE_ERROR_FLOATING_POINT)
         {
 #   if defined (MB_PRINT_DYNAMIC_RESCALE_FAIL_STAT)
@@ -2706,6 +2709,9 @@ int TreeLikelihood_BeagleMultiPartition (int* divisions, int divisionCount, int 
 #   if defined (MB_PRINT_DYNAMIC_RESCALE_FAIL_STAT)
     countALL++;
 #   endif
+    if (*lnL > DBL_MAX || *lnL < -DBL_MAX) {
+        beagleReturn = BEAGLE_ERROR_FLOATING_POINT;
+    }
     if (beagleReturn == BEAGLE_ERROR_FLOATING_POINT)
         {
 #   if defined (MB_PRINT_DYNAMIC_RESCALE_FAIL_STAT)
