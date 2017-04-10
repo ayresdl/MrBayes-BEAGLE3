@@ -444,7 +444,7 @@ void recalculateScalers(int chain)
             }
 
         /* here it does not matter if we flip CL space or not */
-        TreeCondLikes_BeagleMultiPartition(divisions, divisionCount, chain);
+        TreeCondLikes_BeagleMultiPartition_Rescale_All(divisions, divisionCount, chain);
 
         free(divisions);
         }
@@ -1724,45 +1724,56 @@ void LaunchBEAGLELogLikeMultiPartition(int* divisions, int divisionCount, int ch
             /* Check if likelihood is valid */      
             if (beagleReturn == BEAGLE_ERROR_FLOATING_POINT) 
                 {
+                (*lnL)=0;
                 for (d=0; d<norescaleDivisionCount; d++)
                     {
-                    dIndex = norescaleDivisions[d];
-                    m = &modelSettings[dIndex];
-
-                    m->rescaleFreqOld = m->rescaleFreqNew = m->rescaleFreq[chain];
-                    if (m->rescaleFreqNew > 1 && m->successCount[chain] < 40)
+                    if (modelSettings[0].logLikelihoodsAll[d] > DBL_MAX ||
+                        modelSettings[0].logLikelihoodsAll[d] < -DBL_MAX) 
                         {
-                        if (m->successCount[chain] < 10)
+                        dIndex = norescaleDivisions[d];
+                        m = &modelSettings[dIndex];
+
+                        m->rescaleFreqOld = m->rescaleFreqNew = m->rescaleFreq[chain];
+                        if (m->rescaleFreqNew > 1 && m->successCount[chain] < 40)
                             {
-                            if (m->successCount[chain] < 4)
+                            if (m->successCount[chain] < 10)
                                 {
-                                m->rescaleFreqNew -= m->rescaleFreqNew >> 3; /* <== we cut up to 12,5% of rescaleFreq */
-                                if (m->successCount[chain] < 2)
+                                if (m->successCount[chain] < 4)
                                     {
-                                    m->rescaleFreqNew -= m->rescaleFreqNew >> 3;
-                                    /* to avoid situation when we may stack at high rescaleFreq when new states do not get accepted because of low liklihood but there proposed frequency is high we reduce rescaleFreq even if we reject the last move*/
-                                    /* basically the higher probability of proposing of low liklihood state which needs smaller rescaleFreq would lead to higher probability of hitting this code which should reduce rescaleFreqOld thus reduce further probability of hitting this code */
-                                    /* at some point this negative feedback mechanism should get in balance with the mechanism of periodically increasing rescaleFreq when long sequence of successes is achieved*/
+                                    m->rescaleFreqNew -= m->rescaleFreqNew >> 3; /* <== we cut up to 12,5% of rescaleFreq */
+                                    if (m->successCount[chain] < 2)
+                                        {
+                                        m->rescaleFreqNew -= m->rescaleFreqNew >> 3;
+                                        /* to avoid situation when we may stack at high rescaleFreq when new states do not get accepted because of low liklihood but there proposed frequency is high we reduce rescaleFreq even if we reject the last move*/
+                                        /* basically the higher probability of proposing of low liklihood state which needs smaller rescaleFreq would lead to higher probability of hitting this code which should reduce rescaleFreqOld thus reduce further probability of hitting this code */
+                                        /* at some point this negative feedback mechanism should get in balance with the mechanism of periodically increasing rescaleFreq when long sequence of successes is achieved*/
+                                        m->rescaleFreqOld -= m->rescaleFreqOld >> 3;
+                                        }
                                     m->rescaleFreqOld -= m->rescaleFreqOld >> 3;
+                                    m->rescaleFreqOld--;
+                                    m->rescaleFreqOld = (m->rescaleFreqOld ? m->rescaleFreqOld:1);
+                                    m->recalculateScalers = YES; 
+                                    recalcScalers = YES;
                                     }
-                                m->rescaleFreqOld -= m->rescaleFreqOld >> 3;
-                                m->rescaleFreqOld--;
-                                m->rescaleFreqOld = (m->rescaleFreqOld ? m->rescaleFreqOld:1);
-                                m->recalculateScalers = YES; 
-                                recalcScalers = YES;
                                 }
+                            m->rescaleFreqNew--;
+                            m->rescaleFreqNew = (m->rescaleFreqNew ? m->rescaleFreqNew : 1);
                             }
-                        m->rescaleFreqNew--;
-                        m->rescaleFreqNew = (m->rescaleFreqNew ? m->rescaleFreqNew : 1);
+                        m->successCount[chain] = 0;
+                        rescaleDivisions[rescaleDivisionCount++] = dIndex;
+                        norescaleDivisions[d] = -1;
+                        } 
+                    else
+                        {
+                            (*lnL)+= modelSettings[0].logLikelihoodsAll[d];
                         }
-                    m->successCount[chain] = 0;
                     }
-                /* rescaling all divisions */
-                for (d=0; d<divisionCount; d++)
-                    {
-                    rescaleDivisions[d] = divisions[d];
-                    }
-                rescaleDivisionCount = divisionCount;
+                // /* rescaling all divisions */
+                // for (d=0; d<divisionCount; d++)
+                //     {
+                //     rescaleDivisions[d] = divisions[d];
+                //     }
+                // rescaleDivisionCount = divisionCount;
                 }
             }
 
