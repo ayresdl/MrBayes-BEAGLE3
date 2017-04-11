@@ -38,7 +38,7 @@
 // #define DEBUG_MB_BEAGLE_MULTIPART
 // #define DEBUG_MB_BEAGLE_MULTIPART_SITELNL
 
-#define BEAGLE_CTIPS_ENABLED /* define to use compact representation tips with BEAGLE */
+#undef BEAGLE_CTIPS_ENABLED /* define to use compact representation tips with BEAGLE */
 
 const char* const svnRevisionMbbeagleC = "$Rev$";   /* Revision keyword which is expended/updated by svn on each commit/update */
 
