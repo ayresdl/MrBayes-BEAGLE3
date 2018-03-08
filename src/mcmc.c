@@ -2089,6 +2089,7 @@ void CopySiteScalers (ModelInfo *m, int chain)
                                               m->siteScalerIndex[chain] + i);
                 }
             else
+#   if defined (BEAGLE_MULTIPART_ENABLED)
                 {
                 beagleResetScaleFactorsByPartition (m->beagleInstance,
                                                     m->siteScalerIndex[chain] + i,
@@ -2099,6 +2100,7 @@ void CopySiteScalers (ModelInfo *m, int chain)
                                                          m->siteScalerIndex[chain] + i,
                                                          m->divisionIndex);                        
                 }
+#   endif /* BEAGLE_MULTIPART_ENABLED */
             j++;
             }
         return;
@@ -15815,7 +15817,9 @@ void ResetSiteScalers (ModelInfo *m, int chain)
         if (m->useBeagleMultiPartitions == NO)
             beagleResetScaleFactors(m->beagleInstance, m->siteScalerIndex[chain]);
         else
+#   if defined (BEAGLE_MULTIPART_ENABLED)
             beagleResetScaleFactorsByPartition(m->beagleInstance, m->siteScalerIndex[chain], m->divisionIndex);
+#   endif /* BEAGLE_MULTIPART_ENABLED */
         /* TODO: check if nCijkParts scale factors should also be reset here */
         return;
         }
