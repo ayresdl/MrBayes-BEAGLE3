@@ -23,6 +23,8 @@ end;
 
 begin mrbayes;
 
+set usebeagle=yes;
+
 set autoclose=yes nowarn=yes seed=1 swapseed=1;
 
 lset nst=6 rates=invgamma;

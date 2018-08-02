@@ -171,7 +171,20 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
 {
     int                     resource, beagleInstance;
     BeagleInstanceDetails   details;
-    long                    preferedFlags, requiredFlags;
+    long                    preferredFlags, requiredFlags;
+
+    preferredFlags = beagleFlags;
+    
+    requiredFlags = 0L;
+    
+    long benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_NONE;
+
+    if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS) {
+        requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
+        benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_ALWAYS;
+    } else if (beagleScalingScheme == MB_BEAGLE_SCALE_DYNAMIC) {
+        benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_DYNAMIC;
+    }
 
     if (beagleResourceNumber >= 0 && beagleResourceNumber != 99)
         {
@@ -182,12 +195,89 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
         {
         resource = beagleResource[beagleInstanceCount % beagleResourceCount];
         }
-    preferedFlags = beagleFlags;
-    
-    requiredFlags = 0L;
-    
-    if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS)
-        requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
+    else if (beagleResourceNumber == 99) {
+        int numInstancePartitions = 1;
+        if (division == -1) {
+            numInstancePartitions = numCurrentDivisions;
+        }
+
+        MrBayesPrint ("\n%s   Running benchmarks to automatically select fastest BEAGLE resource... ", spacer);
+
+        // select fastest resource
+        BeagleBenchmarkedResourceList* rBList;
+        rBList = beagleGetBenchmarkedResourceList(
+                    numLocalTaxa,
+                    numLocalTaxa - numPartAmbigTips,
+                    numModelStates,
+                    numChars,
+                    numGammaCats,
+                    NULL,
+                    0,
+                    preferredFlags,
+                    requiredFlags,
+                    nCijkParts,
+                    numInstancePartitions,
+                    0,
+                    benchmarkFlags);
+
+#       if defined (DEBUG_MB_BEAGLE_FLOW)
+            fprintf(stdout, "Resource benchmarks:\n");
+            fprintf(stdout, "\ttipCount : %d\n", numLocalTaxa);
+            fprintf(stdout, "\tcompactBufferCount : %d\n", numLocalTaxa - numPartAmbigTips);
+            fprintf(stdout, "\tstateCount : %d\n", numModelStates);
+            fprintf(stdout, "\tpatternCount : %d\n", numChars);
+            fprintf(stdout, "\tcategoryCount : %d\n", numGammaCats);
+            fprintf(stdout, "\teigenModelCount : %d\n", nCijkParts);
+            fprintf(stdout, "\tpartitionCount : %d\n", numInstancePartitions);
+            fprintf(stdout, "\tPreferred Flags:");
+            BeaglePrintFlags(preferredFlags);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "\tRequired Flags:");
+            BeaglePrintFlags(requiredFlags);
+            fprintf(stdout, "\n");
+            fprintf(stdout, "\tBenchmark Flags: ");
+            (benchmarkFlags & BEAGLE_BENCHFLAG_SCALING_ALWAYS ? fprintf(stdout, "BEAGLE_BENCHFLAG_SCALING_ALWAYS") : fprintf(stdout, "BEAGLE_BENCHFLAG_SCALING_DYNAMIC"));
+            fprintf(stdout, "\n");
+            fprintf(stdout, "\n");
+
+
+
+            if (rBList != NULL) {
+                for (int i = 0; i < rBList->length; i++) {
+                    fprintf(stdout, "\tResource %i:\n\t\tName : %s\n", i, rBList->list[i].name);
+                    fprintf(stdout, "\t\tDesc : %s\n", rBList->list[i].description);
+                    fprintf(stdout, "\t\tSupport Flags:");
+                    BeaglePrintFlags(rBList->list[i].supportFlags);
+                    fprintf(stdout, "\n");
+                    fprintf(stdout, "\t\tRequired Flags:");
+                    BeaglePrintFlags(rBList->list[i].requiredFlags);
+                    fprintf(stdout, "\n");
+                    fprintf(stdout, "\t\tBenchmark Results:\n");
+                    fprintf(stdout, "\t\t\tNmbr : %d\n", rBList->list[i].number);
+                    fprintf(stdout, "\t\t\tImpl : %s\n", rBList->list[i].implName);
+                    fprintf(stdout, "\t\t\tFlags:");
+                    BeaglePrintFlags(rBList->list[i].benchedFlags);
+                    fprintf(stdout, "\n");
+                    fprintf(stdout, "\t\t\tPerf : %.4f ms (%.2fx CPU)\n", rBList->list[i].benchmarkResult, rBList->list[i].performanceRatio);
+                }
+            }
+            fprintf(stdout, "\n");
+#       endif
+
+        if (rBList != NULL) {
+            double fastestTime = rBList->list[0].benchmarkResult;
+            resource = rBList->list[0].number;
+            beagleResourceCount = 1;
+
+            for (int i = 1; i < rBList->length; i++) {
+                if (rBList->list[i].benchmarkResult < fastestTime) {
+                    fastestTime = rBList->list[i].benchmarkResult;
+                    resource = rBList->list[i].number;
+                }
+            }
+        }
+    }
+
 
     /* TODO: allocate fewer buffers when nCijkParts > 1 */
     /* create beagle instance */
@@ -202,7 +292,7 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
                                           numScalers * nCijkParts,
                                           (beagleResourceCount == 0 ? NULL : &resource),
                                           (beagleResourceCount == 0 ? 0 : 1),
-                                          preferedFlags,
+                                          preferredFlags,
                                           requiredFlags,
                                           &details);
 
