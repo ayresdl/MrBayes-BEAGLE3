@@ -4644,8 +4644,10 @@ void FreeChainMemory (void)
         if (m->useBeagle == NO)
             continue;
 
-        if (!(m->useBeagleMultiPartitions == YES && m->divisionIndex > 0))
+        if (!(m->useBeagleMultiPartitions == YES && m->divisionIndex > 0)) {
             beagleFinalizeInstance(m->beagleInstance);
+            m->beagleInstance = -99; // TODO: allow consecutive 'mcmc' runs using BEAGLE
+        }
 
         SafeFree((void **)(&m->logLikelihoods));
         SafeFree((void **)(&m->inRates));
@@ -5892,7 +5894,7 @@ int InitChainCondLikes (void)
 
     useBeagleMultiPartitions = NO;
 #   if defined (BEAGLE_MULTIPART_ENABLED)
-    if (beagleResourceNumber != 0 && numCurrentDivisions > 1 && InitBeagleMultiPartitionInstance() != ERROR)
+    if (beagleResourceNumber != 0 && numCurrentDivisions > 1 && InitBeagleMultiPartitionInstance() != ERROR && m->useBeagle == YES)
         useBeagleMultiPartitions = YES;
 #   endif
 

@@ -69,6 +69,12 @@ int InitBeagleInstance (ModelInfo *m, int division)
     double                  *inPartials;
     BitsLong                *charBits;
     
+    if (m->beagleInstance == -99) {
+        MrBayesPrint ("\n%s   Error: Consecutive MCMC runs not currently supported with BEAGLE. Please restart MrBayes.\n\n", spacer);
+        exit(1);
+    }
+
+
     if (m->useBeagle == NO)
         return ERROR;
     
@@ -169,16 +175,15 @@ int InitBeagleInstance (ModelInfo *m, int division)
 
 int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, int numCondLikes, int numScalers, int numChars, int numTiProbs, int numPartAmbigTips, int division)
 {
-    int                     resource, beagleInstance;
+    int                     resource, resourceCount, beagleInstance;
     BeagleInstanceDetails   details;
     long                    preferredFlags, requiredFlags;
 
-    preferredFlags = beagleFlags;
-    
-    requiredFlags = 0L;
-    
-    long benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_NONE;
+    resourceCount = beagleResourceCount;
 
+    preferredFlags = beagleFlags;
+    requiredFlags = 0L;
+    long benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_NONE;
     if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS) {
         requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
         benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_ALWAYS;
@@ -189,7 +194,7 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
     if (beagleResourceNumber >= 0 && beagleResourceNumber != 99)
         {
         resource = beagleResourceNumber;
-        beagleResourceCount = 1;
+        resourceCount = 1;
         }
     else if (beagleResourceCount != 0) 
         {
@@ -267,7 +272,7 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
         if (rBList != NULL) {
             double fastestTime = rBList->list[0].benchmarkResult;
             resource = rBList->list[0].number;
-            beagleResourceCount = 1;
+            resourceCount = 1;
 
             for (int i = 1; i < rBList->length; i++) {
                 if (rBList->list[i].benchmarkResult < fastestTime) {
@@ -290,8 +295,8 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
                                           numTiProbs*nCijkParts,
                                           numGammaCats,
                                           numScalers * nCijkParts,
-                                          (beagleResourceCount == 0 ? NULL : &resource),
-                                          (beagleResourceCount == 0 ? 0 : 1),
+                                          (resourceCount == 0 ? NULL : &resource),
+                                          (resourceCount == 0 ? 0 : 1),
                                           preferredFlags,
                                           requiredFlags,
                                           &details);
@@ -1507,6 +1512,11 @@ int InitBeagleMultiPartitionInstance ()
     int                     beagleInstance;
 
     m = &modelSettings[0];
+
+    if (m->beagleInstance == -99) {
+        MrBayesPrint ("\n%s   Error: Consecutive MCMC runs not currently supported with BEAGLE. Please restart MrBayes.\n\n", spacer);
+        exit(1);
+    }
 
     if (m->useBeagle == NO)
         return ERROR;
