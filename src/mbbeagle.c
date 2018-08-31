@@ -198,7 +198,11 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
         }
     else if (beagleResourceCount != 0) 
         {
-        resource = beagleResource[beagleInstanceCount % beagleResourceCount];
+#   if defined (MPI_ENABLED)
+	  resource = beagleResource[(beagleInstanceCount + proc_id) % beagleResourceCount];
+#   else
+	  resource = beagleResource[beagleInstanceCount % beagleResourceCount];
+#   endif
         }
     else if (beagleResourceNumber == 99) {
         int numInstancePartitions = 1;
@@ -282,7 +286,6 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
             }
         }
     }
-
 
     /* TODO: allocate fewer buffers when nCijkParts > 1 */
     /* create beagle instance */
