@@ -648,6 +648,7 @@ void BeaglePrintFlags(long inFlags)
                       "VECTOR_NONE",
                       "VECTOR_SSE",
                       "THREADING_NONE",
+                      "THREADING_CPP",
                       "THREADING_OPENMP"
                     };
     long flags[] = { BEAGLE_FLAG_PROCESSOR_CPU,
@@ -669,6 +670,7 @@ void BeaglePrintFlags(long inFlags)
                      BEAGLE_FLAG_VECTOR_NONE,
                      BEAGLE_FLAG_VECTOR_SSE,
                      BEAGLE_FLAG_THREADING_NONE,
+                     BEAGLE_FLAG_THREADING_CPP,
                      BEAGLE_FLAG_THREADING_OPENMP
                     };
 
