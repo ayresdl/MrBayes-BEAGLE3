@@ -183,13 +183,6 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
 
     preferredFlags = beagleFlags;
     requiredFlags = 0L;
-    long benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_NONE;
-    if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS) {
-        requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
-        benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_ALWAYS;
-    } else if (beagleScalingScheme == MB_BEAGLE_SCALE_DYNAMIC) {
-        benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_DYNAMIC;
-    }
 
     if (beagleResourceNumber >= 0 && beagleResourceNumber != 99)
         {
@@ -212,6 +205,14 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
         }
 
         MrBayesPrint ("\n%s   Running benchmarks to automatically select fastest BEAGLE resource... ", spacer);
+
+        long benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_NONE;
+        if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS) {
+            requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
+            benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_ALWAYS;
+        } else if (beagleScalingScheme == MB_BEAGLE_SCALE_DYNAMIC) {
+            benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_DYNAMIC;
+        }
 
         // select fastest resource
         BeagleBenchmarkedResourceList* rBList;
