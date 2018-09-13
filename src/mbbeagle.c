@@ -204,6 +204,7 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
 	  resource = beagleResource[beagleInstanceCount % beagleResourceCount];
 #   endif
         }
+#if defined (BEAGLE_MULTIPART_ENABLED)
     else if (beagleResourceNumber == 99) {
         int numInstancePartitions = 1;
         if (division == -1) {
@@ -286,6 +287,7 @@ int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, i
             }
         }
     }
+#endif /* BEAGLE_MULTIPART_ENABLED */
 
     /* TODO: allocate fewer buffers when nCijkParts > 1 */
     /* create beagle instance */
@@ -648,7 +650,9 @@ void BeaglePrintFlags(long inFlags)
                       "VECTOR_NONE",
                       "VECTOR_SSE",
                       "THREADING_NONE",
+#if defined (BEAGLE_MULTIPART_ENABLED)
                       "THREADING_CPP",
+#endif
                       "THREADING_OPENMP"
                     };
     long flags[] = { BEAGLE_FLAG_PROCESSOR_CPU,
@@ -670,11 +674,19 @@ void BeaglePrintFlags(long inFlags)
                      BEAGLE_FLAG_VECTOR_NONE,
                      BEAGLE_FLAG_VECTOR_SSE,
                      BEAGLE_FLAG_THREADING_NONE,
+#if defined (BEAGLE_MULTIPART_ENABLED)
                      BEAGLE_FLAG_THREADING_CPP,
+#endif
                      BEAGLE_FLAG_THREADING_OPENMP
                     };
 
-    for (i=k=0; i<20; i++)
+    int flagCount = 20;
+
+#if defined (BEAGLE_MULTIPART_ENABLED)
+    flagCount = 21;
+#endif
+
+    for (i=k=0; i<flagCount; i++)
         {
         if (inFlags & flags[i])
             {
