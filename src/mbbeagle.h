@@ -17,7 +17,7 @@ void   recalculateScalers (int chain);
 
 int    InitBeagleInstance (ModelInfo *m, int division);
 
-int    createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, int numCondLikes, int numScalers, int numChars, int numTiProbs, int numPartAmbigTips, int division);
+int    createBeagleInstance(ModelInfo *m, int nCijkParts, int numGammaCats, int numModelStates, int numCondLikes, int numScalers, int numChars, int numTiProbs, int numPartAmbigTips, int division);
 
 int    TreeCondLikes_Beagle (Tree *t, int division, int chain);
 int    TreeLikelihood_Beagle (Tree *t, int division, int chain, MrBFlt *lnL, int whichSitePats);

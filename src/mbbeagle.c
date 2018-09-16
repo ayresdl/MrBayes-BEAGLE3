@@ -38,7 +38,7 @@
 // #define DEBUG_MB_BEAGLE_MULTIPART
 // #define DEBUG_MB_BEAGLE_MULTIPART_SITELNL
 
-#undef BEAGLE_CTIPS_ENABLED /* define to use compact representation tips with BEAGLE */
+#undef BEAGLE_CTIPS_ENABLED /* define to use compact representation tips with BEAGLE3 on GPU */
 
 const char* const svnRevisionMbbeagleC = "$Rev$";   /* Revision keyword which is expended/updated by svn on each commit/update */
 
@@ -102,16 +102,18 @@ int InitBeagleInstance (ModelInfo *m, int division)
         {
         for (i=0; i<numLocalTaxa; i++)
             {
-#if defined (BEAGLE_CTIPS_ENABLED)
+#if defined(BEAGLE_MULTIPART_ENABLED) && !defined(BEAGLE_CTIPS_ENABLED) 
+            if (m->isPartAmbig[i] == YES || (m->beagleInstanceFlags & BEAGLE_FLAG_PROCESSOR_GPU))
+#else 
             if (m->isPartAmbig[i] == YES)
-                numPartAmbigTips++;
-#else
-            numPartAmbigTips++;
 #endif
+                {
+                numPartAmbigTips++;
+                }
             }
         }
 
-    m->beagleInstance = createBeagleInstance(m->nCijkParts, m->numGammaCats, m->numModelStates, m->numCondLikes, m->numScalers, m->numChars, m->numTiProbs, numPartAmbigTips, division);
+    m->beagleInstance = createBeagleInstance(m, m->nCijkParts, m->numGammaCats, m->numModelStates, m->numCondLikes, m->numScalers, m->numChars, m->numTiProbs, numPartAmbigTips, division);
 
     if (m->beagleInstance < 0)
         return ERROR;
@@ -125,8 +127,11 @@ int InitBeagleInstance (ModelInfo *m, int division)
         return ERROR;
     for (i=0; i<numLocalTaxa; i++)
         {
-#if defined (BEAGLE_CTIPS_ENABLED)
+#if defined(BEAGLE_MULTIPART_ENABLED) && !defined(BEAGLE_CTIPS_ENABLED) 
+        if (m->isPartAmbig[i] == NO && !(m->beagleInstanceFlags & BEAGLE_FLAG_PROCESSOR_GPU))
+#else
         if (m->isPartAmbig[i] == NO)
+#endif
             {
             charBits = m->parsSets[i];
             for (c=0; c<m->numChars; c++)
@@ -148,7 +153,6 @@ int InitBeagleInstance (ModelInfo *m, int division)
             beagleSetTipStates(m->beagleInstance, i, inStates);
             }
         else /* if (m->isPartAmbig == YES) */
-#endif
             {
             k = 0;
             charBits = m->parsSets[i];
@@ -173,7 +177,7 @@ int InitBeagleInstance (ModelInfo *m, int division)
 }
 
 
-int createBeagleInstance(int nCijkParts, int numGammaCats, int numModelStates, int numCondLikes, int numScalers, int numChars, int numTiProbs, int numPartAmbigTips, int division)
+int createBeagleInstance(ModelInfo *m, int nCijkParts, int numGammaCats, int numModelStates, int numCondLikes, int numScalers, int numChars, int numTiProbs, int numPartAmbigTips, int division)
 {
     int                     resource, resourceCount, beagleInstance;
     BeagleInstanceDetails   details;
@@ -333,6 +337,8 @@ MrBayesPrint ("%s      MODEL STATES: %d", spacer, numModelStates);
         MrBayesPrint ("\n");
         beagleInstanceCount++;
         }
+
+    m->beagleInstanceFlags = details.flags;
 
     return beagleInstance;
 }
@@ -1618,25 +1624,32 @@ int InitBeagleMultiPartitionInstance ()
         {
         for (i=0; i<numLocalTaxa; i++)
             {
-#if defined (BEAGLE_CTIPS_ENABLED)
-            for (d=0; d<numCurrentDivisions; d++)
+#if defined(BEAGLE_MULTIPART_ENABLED) && !defined(BEAGLE_CTIPS_ENABLED) 
+            if (!(m->beagleInstanceFlags & BEAGLE_FLAG_PROCESSOR_GPU))
+#else
+            if (1)
+#endif
                 {
-                m = &modelSettings[d];
-                if (m->isPartAmbig[i] == YES)
+                for (d=0; d<numCurrentDivisions; d++)
                     {
-                    anyDivPartAmbigTip[i] = YES;
-                    numPartAmbigTips++;
-                    break;
+                    m = &modelSettings[d];
+                    if (m->isPartAmbig[i] == YES)
+                        {
+                        anyDivPartAmbigTip[i] = YES;
+                        numPartAmbigTips++;
+                        break;
+                        }
                     }
                 }
-#else
-            anyDivPartAmbigTip[i] = YES;
-            numPartAmbigTips++;
-#endif
+            else
+                {
+                anyDivPartAmbigTip[i] = YES;
+                numPartAmbigTips++;
+                }
             }
         }
 
-    beagleInstance = createBeagleInstance(nCijkParts, numGammaCats, numModelStates, numCondLikes, numScalers, numChars, numTiProbs, numPartAmbigTips, -1);
+    beagleInstance = createBeagleInstance(m, nCijkParts, numGammaCats, numModelStates, numCondLikes, numScalers, numChars, numTiProbs, numPartAmbigTips, -1);
     
     if (beagleInstance < 0)
         return ERROR;

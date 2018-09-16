@@ -1304,6 +1304,7 @@ typedef struct modelinfo
     int*        tiProbIndices;              /* array of trans prob indices for Beagle       */
     MrBFlt*     logLikelihoods;             /* array of log likelihoods from Beagle         */
     int         beagleInstance;             /* beagle instance for division                 */
+    long        beagleInstanceFlags;        /* beagle instance flags for division           */
     MrBFlt*     inWeights;                  /* array of weights for Beagle root likelihood  */
     int*        bufferIndices;              /* array of partial indices for root likelihood */
     int*        eigenIndices;               /* array of eigen indices for root likelihood   */
