@@ -17509,7 +17509,6 @@ int SetModelInfo (void)
 
 #   if defined (BEAGLE_ENABLED)
         m->beagleInstance = -1;               /* beagle instance                              */
-        m->beagleInstanceFlags = 0;           /* beagle instance flags for division           */
         m->logLikelihoods = NULL;             /* array of log likelihoods from Beagle         */
         m->inRates = NULL;                    /* array of category rates for Beagle           */
         m->branchLengths = NULL;              /* array of branch lengths for Beagle           */

@@ -103,7 +103,7 @@ int InitBeagleInstance (ModelInfo *m, int division)
         for (i=0; i<numLocalTaxa; i++)
             {
 #if defined(BEAGLE_MULTIPART_ENABLED) && !defined(BEAGLE_CTIPS_ENABLED) 
-            if (m->isPartAmbig[i] == YES || (m->beagleInstanceFlags & BEAGLE_FLAG_PROCESSOR_GPU))
+            if (m->isPartAmbig[i] == YES || (beagleFlags & BEAGLE_FLAG_PROCESSOR_GPU))
 #else 
             if (m->isPartAmbig[i] == YES)
 #endif
@@ -128,7 +128,7 @@ int InitBeagleInstance (ModelInfo *m, int division)
     for (i=0; i<numLocalTaxa; i++)
         {
 #if defined(BEAGLE_MULTIPART_ENABLED) && !defined(BEAGLE_CTIPS_ENABLED) 
-        if (m->isPartAmbig[i] == NO && !(m->beagleInstanceFlags & BEAGLE_FLAG_PROCESSOR_GPU))
+        if (m->isPartAmbig[i] == NO && !(beagleFlags & BEAGLE_FLAG_PROCESSOR_GPU))
 #else
         if (m->isPartAmbig[i] == NO)
 #endif
@@ -337,8 +337,6 @@ MrBayesPrint ("%s      MODEL STATES: %d", spacer, numModelStates);
         MrBayesPrint ("\n");
         beagleInstanceCount++;
         }
-
-    m->beagleInstanceFlags = details.flags;
 
     return beagleInstance;
 }
@@ -1625,7 +1623,7 @@ int InitBeagleMultiPartitionInstance ()
         for (i=0; i<numLocalTaxa; i++)
             {
 #if defined(BEAGLE_MULTIPART_ENABLED) && !defined(BEAGLE_CTIPS_ENABLED) 
-            if (!(m->beagleInstanceFlags & BEAGLE_FLAG_PROCESSOR_GPU))
+            if (!(beagleFlags & BEAGLE_FLAG_PROCESSOR_GPU))
 #else
             if (1)
 #endif
