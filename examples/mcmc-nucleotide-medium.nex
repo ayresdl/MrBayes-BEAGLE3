@@ -26,7 +26,7 @@ charset 3rd_pos = 3-18792\3;
 partition by_codon = 3:1st_pos,2nd_pos,3rd_pos;
 [partition by_codon = 10:1st_pos,2nd_pos,3rd_pos,4th_pos,5th_pos,6th_pos,7th_pos,8th_pos,9th_pos,10th_pos;]
 
-[set partition=by_codon;]
+set partition=by_codon;
 
 lset applyto=(all) nst=6 rates=invgamma;
 
@@ -47,6 +47,6 @@ set seed=1 swapseed=1;
 
 [mcmc ngen=50000 nruns=1 nchains=1;]
 [mcmc ngen=492 nruns=1 nchains=1 printFreq=1;]
-mcmc ngen=5000 nruns=1 nchains=1 printFreq=1000;
+mcmc ngen=1 nruns=1 nchains=1 printFreq=1000;
 
 end;

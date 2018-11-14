@@ -32,7 +32,7 @@
 
 #if defined (BEAGLE_ENABLED)
 #include "libhmsbeagle/beagle.h"
-#define BEAGLE_LEVELPASS_ENABLED /* define to send operations to BEAGLE in reverse level order */
+#undef BEAGLE_LEVELPASS_ENABLED /* define to send operations to BEAGLE in reverse level order */
 #endif
 
 /* uncomment the following line when releasing, also modify the VERSION_NUMBER below */

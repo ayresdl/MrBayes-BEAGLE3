@@ -188,6 +188,10 @@ int createBeagleInstance(ModelInfo *m, int nCijkParts, int numGammaCats, int num
     preferredFlags = beagleFlags;
     requiredFlags = 0L;
 
+    if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS) {
+        requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
+        }
+
     if (beagleResourceNumber >= 0 && beagleResourceNumber != 99)
         {
         resource = beagleResourceNumber;
@@ -212,7 +216,6 @@ int createBeagleInstance(ModelInfo *m, int nCijkParts, int numGammaCats, int num
 
         long benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_NONE;
         if (beagleScalingScheme == MB_BEAGLE_SCALE_ALWAYS) {
-            requiredFlags |= BEAGLE_FLAG_SCALERS_LOG; //BEAGLE_FLAG_SCALERS_RAW;
             benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_ALWAYS;
         } else if (beagleScalingScheme == MB_BEAGLE_SCALE_DYNAMIC) {
             benchmarkFlags = BEAGLE_BENCHFLAG_SCALING_DYNAMIC;
